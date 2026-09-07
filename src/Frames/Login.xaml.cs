@@ -43,9 +43,6 @@ namespace Quiz_show.Frames
                 Supabase.Gotrue.Session session = await this.client.Auth.SignInWithPassword(email_login.Text, password_login.Password);
                 SaveOfflineCredentials(email_login.Text, password_login.Password);
                 Weiter_login.IsEnabled = false;
-                Shop.Load();
-                mw.progress.Load();
-                src.Klassen.Achievements.Load();
                 this.mw.Change_Frame_by_name("Home");
             }
             catch (Exception ex)
@@ -57,15 +54,20 @@ namespace Quiz_show.Frames
                     if (CheckOfflineCredentials(email_login.Text, password_login.Password))
                     {
                         MessageBox.Show("Erfolgreich im Offline-Modus angemeldet.");
-                        Shop.Load();
-                        mw.progress.Load();
-                        src.Klassen.Achievements.Load();
                         this.mw.Change_Frame_by_name("Home");
                         return;
                     }
                 }
                 MessageBox.Show("Es gibt diesen User nicht, das Passwort ist falsch oder du bist offline.");
                 Logging.logger.Error($"Login failed: {ex.Message}");
+            }
+            finally
+            {
+                await mw.progress.Load();
+                await Shop.Load();
+                src.Klassen.Achievements.Load();
+                Logging.logger.Debug("Data loaded (progress/shop/achievements)");
+                ((Checker_Menue)mw.Frames["Checker"]).Update();
             }
         }
 

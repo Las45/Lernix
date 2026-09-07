@@ -76,7 +76,6 @@ public static class Shop
                 TimeStamp = DateTime.UtcNow
             };
 
-            // Hier nutzen wir .Insert() statt .Upsert(), da ein Kauf immer ein neuer Eintrag ist.
             await GetMainWindow().client.From<UserShopItemModel>().Insert(model);
         }
         catch (Exception ex)

@@ -89,9 +89,6 @@ namespace Quiz_show.Frames
                 quiz = new Quizclass();
                 quiz.Load(path);
 
-                progress.Subjects[fachIndex].Quizzes_correct = 0;
-
-
                 // FIX 2: Fragen mischen ohne Lambda
                 List<Frage> alleFragen = quiz.Questions;
                 List<Frage> gemischt = new List<Frage>();
@@ -115,7 +112,7 @@ namespace Quiz_show.Frames
                 aktuelleFrage = 0;
 
                 MainWindow mw = (MainWindow)Application.Current.MainWindow;
-                mw.Change_Frame(new Quiz(check, progress, quizFragen));
+                mw.Change_Frame(new Quiz(check, progress, quizFragen, fachIndex));
             }
             catch (Exception ex)
             {
@@ -129,7 +126,7 @@ namespace Quiz_show.Frames
 
         private void RectQuiz2_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            LadeQuiz("NSCS_Fragen.json", 1);
+            LadeQuiz("NSCS_Fragen.json", 3);
         }
 
         private void RectQuiz3_MouseUp(object sender, MouseButtonEventArgs e)
@@ -139,7 +136,7 @@ namespace Quiz_show.Frames
 
         private void RectQuiz4_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            LadeQuiz("CABS_Fragen.json", 3);
+            LadeQuiz("CABS_Fragen.json", 1);
         }   
 
         private void RectQuiz5_MouseUp(object sender, MouseButtonEventArgs e)

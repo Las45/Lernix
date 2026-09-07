@@ -1,32 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Quiz_show.src.Klassen;
 
-namespace Quiz_show.src.Klassen
+public class Checker
 {
-    public class Checker
+    public int Quizzes_correct { get; set; }
+    public int Quizzes_gesamt { get; set; }
+    public int Quizzes_prozent { get; set; }
+
+    public void Calculate(int neueFragen)
     {
-        public int Quizzes_correct { get; set; }
-        public int Quizzes_prozent { get; set; }
+        Quizzes_gesamt += neueFragen;
 
-        public void AddCorrect()
+        if (Quizzes_gesamt <= 0)
         {
-            Quizzes_correct++;
-            Logging.logger.Debug($"Correct answer added: {Quizzes_correct}");
+            Quizzes_prozent = 0;
+            return;
         }
 
-        public void Calculate(int gesamt)
-        {
-            if (gesamt <= 0)
-            {
-                Quizzes_prozent = 0;
-                Logging.logger.Debug($"Quiz result calculated: 0% (0/{gesamt})");
-                return;
-            }
-            Quizzes_prozent = Quizzes_correct * 100 / gesamt;
-            Logging.logger.Debug($"Quiz result calculated: {Quizzes_prozent}% ({Quizzes_correct}/{gesamt})");
-        }
+        Quizzes_prozent = Quizzes_correct * 100 / Quizzes_gesamt;
+        Logging.logger.Debug($"Quiz result calculated: {Quizzes_prozent}% ({Quizzes_correct}/{Quizzes_gesamt})");
     }
 }

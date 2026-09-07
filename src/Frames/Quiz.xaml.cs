@@ -36,12 +36,14 @@ namespace Quiz_show.src.Frames
         private Progress progress;
 
         private int aktuellesFach = 0;
-        public Quiz(Checker_Menue checkerMenu, Progress sharedProgress, List<Frage> fragen)
+        public Quiz(Checker_Menue checkerMenu, Progress sharedProgress, List<Frage> fragen, int fachIndex)
         {
             InitializeComponent();
             check = checkerMenu;
             progress = sharedProgress;
             quizFragen = fragen;
+            aktuellesFach = fachIndex;
+
             ZeigeFrage();
         }
         private void ZeigeFrage()
@@ -83,35 +85,43 @@ namespace Quiz_show.src.Frames
 
             if (richtig)
             {
-                progress.Subjects[aktuellesFach].AddCorrect();
+                progress.Subjects[aktuellesFach].Quizzes_correct++;
                 QuizContainer.Background = Brushes.LightGreen;
                 Logging.logger.Debug($"Answer was right");
             }
             else
             {
                 QuizContainer.Background = Brushes.LightCoral;
-                if (quizFragen[aktuelleFrage].antworten.Count > 1){
-                    switch (quizFragen[aktuelleFrage].richtig)
-                    {
-                        case 0:
-                            Loesung.Content = "Richtig: A";
-                            break;
-                        case 1:
-                            Loesung.Content = "Richtig: B";
-                            break;
-                        case 2:
-                            Loesung.Content = "Richtig: C";
-                            break;
-                        case 3:
-                            Loesung.Content = "Richtig: D";
-                            break;
-                    }
-                }
-                else
+                try
                 {
-                    Loesung.Content = $"Richtig: {quizFragen[aktuelleFrage].antworten[0]}";
+                    if (quizFragen[aktuelleFrage].antworten.Count > 1)
+                    {
+                        switch (quizFragen[aktuelleFrage].richtig)
+                        {
+                            case 0:
+                                Loesung.Content = "Richtig: A";
+                                break;
+                            case 1:
+                                Loesung.Content = "Richtig: B";
+                                break;
+                            case 2:
+                                Loesung.Content = "Richtig: C";
+                                break;
+                            case 3:
+                                Loesung.Content = "Richtig: D";
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        Loesung.Content = $"Richtig: {quizFragen[aktuelleFrage].antworten[0]}";
+                    }
+                    await Task.Delay(1000);
                 }
-                await Task.Delay(1000);
+                catch (Exception ex) 
+                {
+                    Logging.logger.Error($"Error showing correct answer: {ex.Message}");
+                }
             }
 
             aktuelleFrage++;
@@ -123,7 +133,7 @@ namespace Quiz_show.src.Frames
             {
                 progress.Subjects[aktuellesFach].Calculate(quizFragen.Count);
 
-                progress.Save();
+                await progress.Save();
 
                 int anzahlRichtige = progress.Subjects[aktuellesFach].Quizzes_correct;
                 Logging.logger.Debug($"Quiz ended");
