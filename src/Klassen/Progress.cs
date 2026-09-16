@@ -1,81 +1,130 @@
 ﻿using Supabase.Gotrue;
 using Supabase.Interfaces;
-using System.IO;
+using System;
+using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
+using System.IO;
+using Supabase.Postgrest.Responses;
 
 namespace Quiz_show.src.Klassen
 {
     public class Progress
     {
         public List<Checker> Subjects { get; set; }
+
         public Progress()
         {
             Subjects = new List<Checker>();
 
-            for (int i=0; i<6; i++)
+            for (int i = 0; i < 6; i++)
             {
                 Subjects.Add(new Checker());
             }
-            
         }
+
         private MainWindow GetMainWindow() => (MainWindow)Application.Current.MainWindow;
 
+        /// <summary>
+        /// Speichert alle 6 Fächer/Slot-Zustände einzeln in Supabase ab.
+        /// </summary>
         public async Task Save()
         {
             string userId = GetMainWindow().client.Auth.CurrentUser?.Id;
-            if (string.IsNullOrEmpty(userId)) 
+            if (string.IsNullOrEmpty(userId))
                 return;
-
-            string json = JsonSerializer.Serialize(this);
 
             try
             {
-                // Ki Anfang:
-                // Model: Claude, Promt: Wie können wir den progress.json pro user auf superbase free server speichern
-                UserProgressModel model = new UserProgressModel
-                {
-                    UserId = userId,
-                    ProgressData = json
-                };
 
-                await GetMainWindow().client
+                ModeledResponse<UserProgressModel> existingResponse = await GetMainWindow().client
                     .From<UserProgressModel>()
-                    .Upsert(model);
-                // Ki Ende
-                Logging.logger.Debug("Progress wurde in der Cloude gesaved");
+                    .Where(x => x.UserId == userId)
+                    .Get();
+
+                List<UserProgressModel> existingRecords = existingResponse?.Models ?? new List<UserProgressModel>();
+
+                for (int i = 0; i < Subjects.Count; i++)
+                {
+                    string json = JsonSerializer.Serialize(Subjects[i]);
+                    try
+                    {
+                        UserProgressModel existing = existingRecords.FirstOrDefault(x => x.SubjectIndex == i);
+
+                        if (existing != null)
+                        {
+                            existing.ProgressData = json;
+                            existing.TimeStamp = DateTime.UtcNow;
+
+                            await GetMainWindow().client
+                                .From<UserProgressModel>()
+                                .Update(existing);
+                        }
+                        else
+                        {
+                            UserProgressModel newModel = new UserProgressModel
+                            {
+                                UserId = userId,
+                                SubjectIndex = i,
+                                ProgressData = json,
+                                TimeStamp = DateTime.UtcNow
+                            };
+
+                            await GetMainWindow().client
+                                .From<UserProgressModel>()
+                                .Insert(newModel);
+                        }
+
+                        File.WriteAllText("progress.json", $"{json}\n{DateTime.UtcNow}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logging.logger.Error($"Error beim Speichern von Supabase (Index {i}): {ex.Message}");
+                    }
+                }
+
+                Logging.logger.Debug("Fortschritt für alle Fächer erfolgreich gespeichert.");
             }
-            catch
+            catch (Exception ex)
             {
-                Logging.logger.Error("Es konnte nicht auf Superbase gespeichert werden");
+                Logging.logger.Error($"Fehler beim Speichern des Fortschritts: {ex.Message}");
             }
         }
-
         public async Task Load()
         {
             string userId = GetMainWindow().client.Auth.CurrentUser?.Id;
-            if (string.IsNullOrEmpty(userId)) 
+            if (string.IsNullOrEmpty(userId))
                 return;
+
             try
             {
-                // Ki Anfang:
-                // Model: Claude, Promt: Wie können wir den progress.json pro user auf superbase free server speichern
-                UserProgressModel? row = await GetMainWindow().client
-            .From<UserProgressModel>()
-            .Where(x => x.UserId == userId)
-            .Single();
+                Supabase.Postgrest.Responses.ModeledResponse<UserProgressModel> response = await GetMainWindow().client
+                    .From<UserProgressModel>()
+                    .Where(x => x.UserId == userId)
+                    .Get();
 
-                if (row?.ProgressData == null) return;
+                if (response?.Models != null)
+                {
+                    foreach (UserProgressModel row in response.Models)
+                    {
+                        // Stellt sicher, dass der Index im zulässigen Bereich liegt
+                        if (row.SubjectIndex >= 0 && row.SubjectIndex < Subjects.Count && !string.IsNullOrEmpty(row.ProgressData))
+                        {
+                            Checker? loadedChecker = JsonSerializer.Deserialize<Checker>(row.ProgressData);
+                            if (loadedChecker != null)
+                            {
+                                Subjects[row.SubjectIndex] = loadedChecker;
+                            }
+                        }
+                    }
+                }
 
-                Progress? geladen = JsonSerializer.Deserialize<Progress>(row.ProgressData);
-                if (geladen != null)
-                    Subjects = geladen.Subjects;
-                // Ki ende
-                Logging.logger.Debug("Progress wurde geloaded von der Cloude");
+                Logging.logger.Debug("Fortschritt für alle Fächer geladen.");
             }
-            catch 
+            catch (Exception ex)
             {
-                Logging.logger.Error("Es konnte nicht von Superbase geladen werden");
+                Logging.logger.Error($"Fehler beim Laden des Fortschritts: {ex.Message}");
             }
         }
     }

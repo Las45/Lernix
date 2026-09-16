@@ -35,10 +35,6 @@ namespace Quiz_show
             Logging.init();
 
             Logging.logger.Debug("App starting");
-            progress.Load();
-            Shop.Load();
-            src.Klassen.Achievements.Load();
-            Logging.logger.Debug("Data loaded (progress/shop/achievements)");
             Checker_Menue checkerMenu = new Checker_Menue(progress);
             Frames.Add("Home", new Homepage());
             Frames.Add("Login", new Login(this, client));
